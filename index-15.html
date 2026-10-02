@@ -1,0 +1,926 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Broto Finance</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>🌱</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --display: 'Fraunces', Georgia, serif;
+    --body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    --bg: #F6F7F3;
+    --surface: #FFFFFF;
+    --border: #E2E6DD;
+    --ink: #15201A;
+    --muted: #6E7C70;
+    --faint: #9AA69A;
+
+    --brand-900: #112A17;
+    --brand-800: #16331D;
+    --brand-700: #1E4027;
+    --brand-600: #2B5435;
+    --brand-100: #E7F0E5;
+
+    --income: #2C6E49;
+    --expense: #AD4A36;
+    --warn-bg: #FFF4E0;
+    --warn-ink: #92650E;
+
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); height: 100%; }
+  body { font-family: var(--body); color: var(--ink); -webkit-font-smoothing: antialiased; }
+  #root { min-height: 100%; }
+  button, input, select, textarea { font-family: inherit; }
+  a { color: inherit; }
+
+  /* ---------- status banner ---------- */
+  .sync-banner { position: fixed; top: calc(env(safe-area-inset-top,0px) + 10px); right: 14px; z-index: 50;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px;
+    font-size: 11.5px; font-weight: 600; color: var(--muted); box-shadow: 0 6px 18px -10px rgba(17,42,23,0.25);
+    display: flex; align-items: center; gap: 6px; opacity: 0; transition: opacity .25s ease; pointer-events: none; }
+  .sync-banner.show { opacity: 1; }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--brand-600); }
+  .warn-banner { background: var(--warn-bg); color: var(--warn-ink); border: 1px solid #F0DCA8; border-radius: 12px;
+    padding: 12px 16px; font-size: 13px; line-height: 1.5; display: flex; gap: 10px; align-items: flex-start; }
+
+  /* ---------- auth / welcome ---------- */
+  .auth-shell { min-height: 100vh; display: flex; }
+  .auth-brand-panel { flex: 1; background: radial-gradient(circle at 20% 20%, var(--brand-700) 0%, var(--brand-900) 70%);
+    color: #fff; display: flex; flex-direction: column; justify-content: space-between; padding: 48px 44px; position: relative; overflow: hidden; }
+  .auth-brand-panel::after { content: ""; position: absolute; width: 480px; height: 480px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%); right: -160px; bottom: -160px; }
+  .auth-brand-top { display: flex; align-items: center; gap: 10px; font-family: var(--display); font-size: 22px; font-weight: 600; position: relative; z-index: 1; }
+  .auth-brand-mid { position: relative; z-index: 1; max-width: 420px; }
+  .auth-brand-mid h1 { font-family: var(--display); font-size: 38px; line-height: 1.15; font-weight: 600; margin: 0 0 14px; }
+  .auth-brand-mid p { font-size: 15px; color: rgba(255,255,255,0.72); line-height: 1.6; margin: 0; }
+  .auth-brand-foot { position: relative; z-index: 1; font-size: 12px; color: rgba(255,255,255,0.5); }
+
+  .auth-form-panel { width: 460px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 32px 24px; }
+  .auth-form-wrap { width: 100%; max-width: 360px; }
+  .auth-form-wrap h2 { font-family: var(--display); font-size: 24px; font-weight: 600; margin: 0 0 6px; }
+  .auth-sub { color: var(--muted); font-size: 13.5px; margin: 0 0 24px; }
+
+  .auth-tabs { display: flex; background: var(--brand-100); border-radius: 11px; padding: 4px; margin-bottom: 22px; }
+  .auth-tabs button { flex: 1; border: none; background: transparent; padding: 9px 0; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: var(--brand-700); cursor: pointer; transition: background .15s; }
+  .auth-tabs button.active { background: var(--brand-700); color: #fff; }
+
+  .auth-form { display: flex; flex-direction: column; gap: 14px; }
+  .field-label { display: block; font-size: 11.5px; font-weight: 700; color: var(--brand-700); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .auth-form input { font-size: 14.5px; padding: 11px 13px; border-radius: 10px; border: 1.5px solid var(--border); outline: none; color: var(--ink); background: var(--bg); width: 100%; transition: border-color .15s, background .15s; }
+  .auth-form input:focus { border-color: var(--brand-600); background: #fff; }
+  .field-hidden { display: none !important; }
+  .pw-field { position: relative; display: flex; }
+  .pw-field input { padding-right: 40px; }
+  .pw-eye { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: none; background: transparent; color: var(--faint); cursor: pointer; padding: 6px; display: flex; align-items: center; border-radius: 6px; font-size: 15px; }
+  .pw-eye:hover { color: var(--brand-700); }
+  .auth-err { display: flex; align-items: flex-start; gap: 7px; color: var(--expense); font-size: 12.5px; line-height: 1.45; background: #FBEDE8; border-radius: 9px; padding: 9px 11px; }
+  .auth-err:empty { display: none; }
+  .btn-primary { background: var(--brand-800); color: #fff; border: none; padding: 13px; border-radius: 10px; font-weight: 600; font-size: 14.5px; cursor: pointer; width: 100%; transition: background .15s, transform .1s; }
+  .btn-primary:hover { background: var(--brand-900); }
+  .btn-primary:active { transform: scale(0.99); }
+  .btn-primary[disabled] { opacity: 0.6; cursor: default; }
+  .btn-ghost { width: 100%; margin-top: 10px; background: transparent; color: var(--brand-700); border: 1.5px solid var(--border); padding: 11px; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; }
+  .btn-ghost:hover { background: var(--brand-100); border-color: var(--brand-100); }
+  .auth-note { margin-top: 18px; font-size: 11.5px; color: var(--faint); line-height: 1.5; }
+
+  @media (max-width: 860px) {
+    .auth-shell { flex-direction: column; }
+    .auth-brand-panel { padding: 32px 24px; min-height: 240px; }
+    .auth-brand-mid h1 { font-size: 28px; }
+    .auth-form-panel { width: 100%; padding: 28px 20px 50px; }
+  }
+
+  /* ---------- app shell ---------- */
+  .app-shell { display: flex; min-height: 100vh; }
+  .sidebar { width: 232px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 22px 16px; }
+  .sidebar-brand { display: flex; align-items: center; gap: 9px; font-family: var(--display); font-size: 20px; font-weight: 600; color: var(--brand-900); padding: 2px 8px 26px; }
+  .sidebar nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+  .nav-item { display: flex; align-items: center; gap: 11px; border: none; border-left: 2.5px solid transparent; background: transparent; text-align: left; padding: 10px 12px; border-radius: 0 9px 9px 0; font-size: 13.5px; font-weight: 500; color: var(--muted); cursor: pointer; width: 100%; transition: background .12s, color .12s; }
+  .nav-item:hover { background: var(--brand-100); color: var(--brand-800); }
+  .nav-item.active { background: var(--brand-100); color: var(--brand-900); border-left-color: var(--brand-700); font-weight: 600; }
+  .sidebar-footer { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 8px; }
+  .sidebar-user { font-size: 11.5px; color: var(--faint); padding: 0 12px 8px; word-break: break-all; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 22px; }
+  .card h3 { margin: 0 0 16px; font-family: var(--display); font-size: 16px; color: var(--ink); font-weight: 600; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .span-2 { grid-column: span 2; }
+  .big-number { font-family: var(--mono); font-size: 28px; font-weight: 600; color: var(--ink); letter-spacing: -0.01em; }
+  .muted { color: var(--faint); font-size: 12.5px; margin-top: 4px; }
+  .mono { font-family: var(--mono); }
+
+  .bar-row { padding: 9px 0; }
+  .bar-row-top { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; color: var(--ink); font-weight: 500; }
+  .bar-track { height: 8px; border-radius: 999px; background: var(--brand-100); overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--brand-600), var(--brand-700)); transition: width .4s ease; }
+  .bar-fill.danger { background: linear-gradient(90deg, #C97B57, var(--expense)); }
+
+  .stack { display: flex; flex-direction: column; gap: 14px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; align-items: end; }
+  .form-grid label, .imp-label { display: flex; flex-direction: column; gap: 5px; font-size: 11.5px; font-weight: 700; color: var(--brand-700); text-transform: uppercase; letter-spacing: 0.04em; }
+  .form-grid input, .form-grid select, .imp-label select { font-size: 14px; padding: 9px 11px; border-radius: 9px; border: 1.5px solid var(--border); outline: none; color: var(--ink); background: var(--bg); width: 100%; }
+  .form-grid input:focus, .form-grid select:focus { border-color: var(--brand-600); background: #fff; }
+  .btn-inline { display: inline-flex; align-items: center; gap: 6px; width: fit-content; padding: 10px 18px; white-space: nowrap; }
+
+  .day-group { margin-bottom: 4px; }
+  .day-group-head { display: flex; justify-content: space-between; font-size: 11.5px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--muted); padding: 12px 0 6px; border-bottom: 1.5px solid var(--border); margin-bottom: 2px; }
+  .entry-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #EEF1EA; gap: 10px; }
+  .entry-item:last-child { border-bottom: none; }
+  .entry-desc { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+  .entry-meta { font-size: 11.5px; color: var(--faint); margin-top: 2px; }
+  .entry-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .icon-btn { border: none; background: transparent; cursor: pointer; color: var(--faint); padding: 5px; border-radius: 7px; font-size: 15px; }
+  .icon-btn:hover { background: #FBEDE8; color: var(--expense); }
+
+  .status-pill { border: 1.5px solid var(--border); background: #fff; color: var(--faint); font-size: 10.5px; font-weight: 700;
+    padding: 4px 10px; border-radius: 999px; cursor: pointer; white-space: nowrap; letter-spacing: 0.02em; transition: all .12s; }
+  .status-pill.on { background: var(--brand-100); border-color: #CFE3CC; color: var(--brand-800); }
+
+  .obj-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+  .obj-title { font-family: var(--display); font-size: 15.5px; font-weight: 600; color: var(--ink); }
+  .ceg-participants { display: flex; flex-direction: column; gap: 8px; }
+  .ceg-p { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid #EEF1EA; }
+  .ceg-p:last-child { border-bottom: none; }
+  .check { width: 19px; height: 19px; border-radius: 6px; border: 1.5px solid #C6D4C3; background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; font-size: 11px; color: #fff; }
+  .check.on { background: var(--brand-700); border-color: var(--brand-700); }
+  .p-name { flex: 1; font-size: 13.5px; color: var(--ink); }
+  .p-name.paid { color: var(--faint); text-decoration: line-through; }
+
+  .imp-label { margin-bottom: 14px; max-width: 260px; }
+  .dropzone { display: flex; align-items: center; gap: 10px; border: 1.5px dashed #C6D4C3; border-radius: 12px; padding: 20px; cursor: pointer; color: var(--brand-700); font-size: 13.5px; font-weight: 600; background: var(--bg); transition: background .15s; }
+  .dropzone:hover { background: var(--brand-100); }
+  .paste-area { width: 100%; font-family: var(--mono); font-size: 13px; border: 1.5px solid var(--border); border-radius: 10px; padding: 12px; resize: vertical; background: var(--bg); color: var(--ink); }
+  .paste-area:focus { outline: none; border-color: var(--brand-600); background: #fff; }
+  .status { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-radius: 10px; font-size: 13.5px; }
+  .status.ok { background: #E6F2E2; color: var(--income); }
+  .status.err { background: #FBEDE8; color: var(--expense); }
+
+  main { flex: 1; padding: 30px 36px 70px; max-width: 920px; }
+  main h1 { font-family: var(--display); font-size: 25px; font-weight: 600; color: var(--ink); margin: 2px 0 22px; }
+
+  .crash-box { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg); padding: 24px; }
+  .crash-card { max-width: 440px; background: #fff; border: 1px solid #F0DCA8; border-radius: 16px; padding: 24px; color: var(--warn-ink); }
+  .crash-card pre { white-space: pre-wrap; font-size: 12px; background: var(--warn-bg); padding: 10px; border-radius: 8px; max-height: 200px; overflow: auto; }
+
+  @media (max-width: 760px) {
+    .app-shell { flex-direction: column; }
+    .sidebar { width: 100%; flex-direction: row; align-items: center; padding: 10px 14px; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    .sidebar-brand { padding: 0 14px 0 0; }
+    .sidebar nav { flex-direction: row; flex-shrink: 0; }
+    .nav-item { border-left: none; border-bottom: 2.5px solid transparent; border-radius: 9px 9px 0 0; }
+    .nav-item.active { border-left-color: transparent; border-bottom-color: var(--brand-700); }
+    .sidebar-footer { border: none; margin: 0; padding: 0 0 0 6px; flex-shrink: 0; }
+    .sidebar-user { display: none; }
+    main { padding: 20px; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .span-2 { grid-column: span 1; }
+    .form-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div id="root">
+  <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;color:#6E7C70;font-family:Inter,sans-serif;font-size:14px;">
+    Carregando o Broto…
+  </div>
+</div>
+<div id="syncBanner" class="sync-banner"><span class="sync-dot"></span><span id="syncText">Sincronizado</span></div>
+
+<script type="module">
+"use strict";
+
+// =================================================================
+// 🔧 CONFIGURAÇÃO DO FIREBASE — cole aqui a sua.
+// Console do Firebase → ⚙️ Configurações do projeto → Geral →
+// "Seus apps" → app da Web → bloco firebaseConfig.
+// Enquanto estiver com os valores de exemplo abaixo, o Broto roda
+// em modo local (sem login de verdade, dados só neste navegador).
+// =================================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyAnnAMHqSOuMiaFzMbns11AGpNf6ZoY_Y4",
+  authDomain: "broto-206f3.firebaseapp.com",
+  projectId: "broto-206f3",
+  storageBucket: "broto-206f3.firebasestorage.app",
+  messagingSenderId: "1020562195791",
+  appId: "1:1020562195791:web:0100e2504ea8a836ea313a",
+};
+
+const FIREBASE_CONFIGURED = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("COLE_");
+
+let fb = null; // { app, auth, db, authFns, dbFns }
+
+async function initFirebase() {
+  if (!FIREBASE_CONFIGURED) return null;
+  try {
+    const [{ initializeApp }, authMod, dbMod] = await Promise.all([
+      import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),
+      import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"),
+      import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"),
+    ]);
+    const app = initializeApp(firebaseConfig);
+    const auth = authMod.getAuth(app);
+    const db = dbMod.getFirestore(app);
+    return { app, auth, db, authFns: authMod, dbFns: dbMod };
+  } catch (err) {
+    console.error("Falha ao carregar o Firebase:", err);
+    return null;
+  }
+}
+
+// =================================================================
+// Armazenamento local (modo de demonstração, sem Firebase configurado)
+// =================================================================
+const LOCAL_KEY = "broto:local-appdata";
+function localGetData() {
+  try { const raw = localStorage.getItem(LOCAL_KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
+}
+function localSaveData(data) {
+  try { localStorage.setItem(LOCAL_KEY, JSON.stringify(data)); } catch (e) {}
+}
+
+function makeId() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return "id-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+}
+const emptyData = () => ({ entries: [], cegs: [], envelopes: [], accounts: [] });
+function normalizeData(data) {
+  data = data || emptyData();
+  data.accounts = data.accounts || [];
+  data.envelopes = data.envelopes || [];
+  data.cegs = data.cegs || [];
+  data.entries = (data.entries || []).map((e) => ({ kind: "despesa", status: "pago", accountId: null, ...e }));
+  return data;
+}
+
+const money = (n) => (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const todayISO = () => new Date().toISOString().slice(0, 10);
+const monthKey = (iso) => iso.slice(0, 7);
+const currentMonthKey = () => todayISO().slice(0, 7);
+const brDate = (iso) => iso.split("-").reverse().join("/");
+
+function accountBalance(data, accountId) {
+  const acc = data.accounts.find((a) => a.id === accountId);
+  if (!acc) return 0;
+  let bal = Number(acc.initial) || 0;
+  data.entries.forEach((e) => {
+    if (e.accountId !== accountId || e.status !== "pago") return;
+    bal += e.kind === "receita" ? Number(e.value) : -Number(e.value);
+  });
+  return bal;
+}
+
+// =================================================================
+// DOM helper
+// =================================================================
+function h(tag, attrs) {
+  const e = document.createElement(tag);
+  const children = Array.prototype.slice.call(arguments, 2);
+  if (attrs) {
+    for (const k in attrs) {
+      const v = attrs[k];
+      if (v === undefined || v === null || v === false) continue;
+      if (k === "class") e.className = v;
+      else if (k === "style" && typeof v === "object") Object.assign(e.style, v);
+      else if (k.indexOf("on") === 0 && typeof v === "function") e.addEventListener(k.slice(2).toLowerCase(), v);
+      else if (k in e && k !== "list") { try { e[k] = v; } catch (err) { e.setAttribute(k, v); } }
+      else e.setAttribute(k, v === true ? "" : v);
+    }
+  }
+  function append(c) {
+    if (c === null || c === undefined || c === false) return;
+    if (Array.isArray(c)) { c.forEach(append); return; }
+    e.appendChild(typeof c === "string" || typeof c === "number" ? document.createTextNode(String(c)) : c);
+  }
+  children.forEach(append);
+  return e;
+}
+function icon(symbol, size) { return h("span", { style: { fontSize: (size || 15) + "px", lineHeight: "1", display: "inline-flex" } }, symbol); }
+function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+function mount(node) { const root = document.getElementById("root"); clear(root); root.appendChild(node); }
+
+function bar(pct, danger) {
+  const clamped = Math.min(100, Math.max(0, pct));
+  return h("div", { class: "bar-track" }, h("div", { class: "bar-fill" + (danger ? " danger" : ""), style: { width: clamped + "%" } }));
+}
+function card(title, children) {
+  const c = h("div", { class: "card" });
+  if (title) c.appendChild(h("h3", null, title));
+  (Array.isArray(children) ? children : [children]).forEach((ch) => ch && c.appendChild(ch));
+  return c;
+}
+
+// =================================================================
+// CSV / texto colado
+// =================================================================
+function parseCSV(text) {
+  const rows = []; let row = [], field = "", inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i], next = text[i + 1];
+    if (inQuotes) {
+      if (c === '"' && next === '"') { field += '"'; i++; }
+      else if (c === '"') inQuotes = false;
+      else field += c;
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ",") { row.push(field); field = ""; }
+      else if (c === "\r") {}
+      else if (c === "\n") { row.push(field); rows.push(row); row = []; field = ""; }
+      else field += c;
+    }
+  }
+  if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
+  if (rows.length === 0) return [];
+  const header = rows[0].map((h) => h.trim());
+  return rows.slice(1).filter((r) => r.some((v) => v.trim() !== "")).map((r) => {
+    const obj = {}; header.forEach((key, i) => { obj[key] = r[i] !== undefined ? r[i] : ""; }); return obj;
+  });
+}
+function guessColumns(obj) {
+  const keys = Object.keys(obj);
+  const find = (cands) => keys.find((k) => cands.some((c) => k.toLowerCase().includes(c)));
+  return { dateKey: find(["data", "date"]), descKey: find(["descri", "hist", "memo", "desc"]), valKey: find(["valor", "value", "amount", "montante"]) };
+}
+function normalizeDate(v) {
+  if (!v) return null;
+  const s = String(v).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const br = s.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/);
+  if (br) return br[3] + "-" + br[2] + "-" + br[1];
+  const d = new Date(s);
+  return !isNaN(d) ? d.toISOString().slice(0, 10) : null;
+}
+function normalizeValue(v) {
+  if (typeof v === "number") return Math.abs(v);
+  let s = String(v).replace(/[^\d,.-]/g, "");
+  if (s.includes(",") && s.includes(".")) s = s.replace(/\./g, "").replace(",", ".");
+  else if (s.includes(",")) s = s.replace(",", ".");
+  const n = parseFloat(s);
+  return isNaN(n) ? NaN : Math.abs(n);
+}
+
+// =================================================================
+// Sessão
+// =================================================================
+const session = { data: null, tab: "overview", uid: null, name: "" };
+let saveTimer = null;
+
+function flashSync(text, ms) {
+  const el = document.getElementById("syncBanner");
+  const txt = document.getElementById("syncText");
+  txt.textContent = text;
+  el.classList.add("show");
+  clearTimeout(flashSync._t);
+  flashSync._t = setTimeout(() => el.classList.remove("show"), ms || 1400);
+}
+
+async function persist(next) {
+  session.data = next;
+  renderMain();
+  if (fb && session.uid) {
+    flashSync("Salvando…", 900);
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(async () => {
+      try {
+        await fb.dbFns.setDoc(fb.dbFns.doc(fb.db, "users", session.uid), next);
+        flashSync("Sincronizado", 1200);
+      } catch (err) {
+        flashSync("Não foi possível salvar agora", 2200);
+      }
+    }, 400);
+  } else {
+    localSaveData(next);
+  }
+}
+
+function logout() {
+  if (fb && session.uid) {
+    fb.authFns.signOut(fb.auth);
+  } else {
+    session.data = null; session.uid = null; session.tab = "overview";
+    showAuth();
+  }
+}
+
+// =================================================================
+// Tela de autenticação
+// =================================================================
+function AUTH_ERROR_MESSAGES(code) {
+  const map = {
+    "auth/email-already-in-use": "Já existe uma conta com esse e-mail.",
+    "auth/invalid-email": "E-mail inválido.",
+    "auth/weak-password": "A senha precisa ter pelo menos 6 caracteres.",
+    "auth/wrong-password": "E-mail ou senha incorretos.",
+    "auth/user-not-found": "E-mail ou senha incorretos.",
+    "auth/invalid-credential": "E-mail ou senha incorretos.",
+    "auth/too-many-requests": "Muitas tentativas. Aguarde um pouco e tente de novo.",
+    "auth/network-request-failed": "Falha de conexão. Verifique sua internet.",
+  };
+  return map[code] || "Não foi possível concluir agora. Tente de novo.";
+}
+
+function AuthScreen() {
+  let mode = "login";
+
+  const brandTop = h("div", { class: "auth-brand-top" }, icon("🌱", 22), h("span", null, "Broto Finance"));
+  const brandMid = h("div", { class: "auth-brand-mid" }, h("h1", null, "Organize cada real, do seu jeito."));
+  const brandPanel = h("div", { class: "auth-brand-panel" }, brandTop, brandMid);
+
+  const heading = h("h2", null, "Bem-vindo de volta");
+  const sub = h("p", { class: "auth-sub" }, "Entre para ver seu painel financeiro.");
+
+  const tabLogin = h("button", { type: "button", class: "active" }, "Entrar");
+  const tabSignup = h("button", { type: "button" }, "Criar conta");
+  const tabs = h("div", { class: "auth-tabs" }, tabLogin, tabSignup);
+
+  const nameInput = h("input", { placeholder: "Como podemos te chamar" });
+  const nameLabel = h("label", { class: "field-hidden" }, h("span", { class: "field-label" }, "Nome"), nameInput);
+
+  const emailInput = h("input", { type: "email", placeholder: "voce@email.com", required: true });
+  const emailLabel = h("label", null, h("span", { class: "field-label" }, "E-mail"), emailInput);
+
+  const pwInput = h("input", { type: "password", placeholder: "••••••••", required: true });
+  const pwEye = h("button", { type: "button", class: "pw-eye" }, icon("👁", 16));
+  pwEye.addEventListener("click", () => {
+    const showing = pwInput.type === "text";
+    pwInput.type = showing ? "password" : "text";
+    clear(pwEye); pwEye.appendChild(icon(showing ? "👁" : "🙈", 16));
+  });
+  const pwLabel = h("label", null, h("span", { class: "field-label" }, "Senha"), h("div", { class: "pw-field" }, pwInput, pwEye));
+
+  const pw2Input = h("input", { type: "password", placeholder: "••••••••" });
+  const pw2Eye = h("button", { type: "button", class: "pw-eye" }, icon("👁", 16));
+  pw2Eye.addEventListener("click", () => {
+    const showing = pw2Input.type === "text";
+    pw2Input.type = showing ? "password" : "text";
+    clear(pw2Eye); pw2Eye.appendChild(icon(showing ? "👁" : "🙈", 16));
+  });
+  const pw2Label = h("label", { class: "field-hidden" }, h("span", { class: "field-label" }, "Confirmar senha"), h("div", { class: "pw-field" }, pw2Input, pw2Eye));
+
+  const errBox = h("div", { class: "auth-err" });
+  const submitBtn = h("button", { type: "submit", class: "btn-primary" }, "Entrar");
+
+  const form = h("form", { class: "auth-form" }, nameLabel, emailLabel, pwLabel, pw2Label, errBox, submitBtn);
+
+  function setMode(next) {
+    mode = next;
+    tabLogin.className = mode === "login" ? "active" : "";
+    tabSignup.className = mode === "signup" ? "active" : "";
+    nameLabel.classList.toggle("field-hidden", mode !== "signup");
+    pw2Label.classList.toggle("field-hidden", mode !== "signup");
+    pw2Input.required = mode === "signup";
+    clear(heading); heading.appendChild(document.createTextNode(mode === "login" ? "Bem-vindo de volta" : "Crie sua conta"));
+    clear(submitBtn); submitBtn.appendChild(document.createTextNode(mode === "login" ? "Entrar" : "Criar minha conta"));
+    setErr("");
+  }
+  function setErr(msg) {
+    clear(errBox);
+    if (msg) { errBox.appendChild(icon("⚠", 15)); errBox.appendChild(h("span", null, msg)); }
+  }
+  function setBusy(b) { submitBtn.disabled = b; }
+
+  tabLogin.addEventListener("click", () => setMode("login"));
+  tabSignup.addEventListener("click", () => setMode("signup"));
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    setErr("");
+    const cleanEmail = emailInput.value.trim().toLowerCase();
+    const pw = pwInput.value;
+    if (!cleanEmail || !pw) { setErr("Preencha e-mail e senha."); return; }
+    if (mode === "signup" && pw !== pw2Input.value) { setErr("As senhas não coincidem."); return; }
+    if (mode === "signup" && pw.length < 6) { setErr("A senha precisa ter pelo menos 6 caracteres."); return; }
+
+    if (!fb) {
+      // modo local — sem Firebase configurado
+      const existing = normalizeData(localGetData());
+      session.uid = null; session.name = nameInput.value.trim() || "Visitante";
+      session.data = existing; session.tab = "overview";
+      showApp();
+      return;
+    }
+
+    setBusy(true);
+    try {
+      if (mode === "signup") {
+        const cred = await fb.authFns.createUserWithEmailAndPassword(fb.auth, cleanEmail, pw);
+        const displayName = nameInput.value.trim() || cleanEmail;
+        await fb.authFns.updateProfile(cred.user, { displayName });
+        await fb.dbFns.setDoc(fb.dbFns.doc(fb.db, "users", cred.user.uid), emptyData());
+        // onAuthStateChanged cuida da navegação
+      } else {
+        await fb.authFns.signInWithEmailAndPassword(fb.auth, cleanEmail, pw);
+      }
+    } catch (err) {
+      setErr(AUTH_ERROR_MESSAGES(err && err.code));
+      setBusy(false);
+    }
+  });
+
+  const note = h("p", { class: "auth-note" }, FIREBASE_CONFIGURED
+    ? "Seus dados ficam protegidos na sua conta e disponíveis em qualquer dispositivo."
+    : "O Firebase ainda não foi configurado neste arquivo — os dados ficam só neste navegador.");
+
+  const formPanel = h("div", { class: "auth-form-panel" }, h("div", { class: "auth-form-wrap" }, heading, sub, tabs, form, note));
+  return h("div", { class: "auth-shell" }, brandPanel, formPanel);
+}
+
+// =================================================================
+// Sidebar
+// =================================================================
+function Sidebar(onTabChange, onLogout) {
+  const items = [
+    { id: "overview", label: "Visão geral", icon: "📊" },
+    { id: "entries", label: "Lançamentos", icon: "💳" },
+    { id: "accounts", label: "Contas", icon: "🏦" },
+    { id: "cegs", label: "CEGs", icon: "👥" },
+    { id: "envelopes", label: "Cofres", icon: "🌱" },
+    { id: "import", label: "Importar extrato", icon: "⬆" },
+  ];
+  const navButtons = {};
+  const nav = h("nav", null);
+  items.forEach((it) => {
+    const btn = h("button", { class: "nav-item" + (session.tab === it.id ? " active" : "") }, icon(it.icon, 15), " " + it.label);
+    btn.addEventListener("click", () => onTabChange(it.id));
+    navButtons[it.id] = btn;
+    nav.appendChild(btn);
+  });
+  const logoutBtn = h("button", { class: "nav-item" }, icon("⏻", 15), " " + (session.uid ? "Sair" : "Início"));
+  logoutBtn.addEventListener("click", onLogout);
+  const footer = h("div", { class: "sidebar-footer" }, h("div", { class: "sidebar-user" }, session.name || ""), logoutBtn);
+  const el = h("div", { class: "sidebar" }, h("div", { class: "sidebar-brand" }, icon("🌱", 19), h("span", null, "Broto")), nav, footer);
+  el._navButtons = navButtons;
+  return el;
+}
+
+// =================================================================
+// Visão geral
+// =================================================================
+function Overview() {
+  const data = session.data;
+  const mk = currentMonthKey();
+  const monthEntries = data.entries.filter((e) => monthKey(e.date) === mk);
+  const monthExpenses = monthEntries.filter((e) => e.kind !== "receita");
+  const monthIncome = monthEntries.filter((e) => e.kind === "receita");
+  const totalExpense = monthExpenses.reduce((s, e) => s + Number(e.value), 0);
+  const totalIncome = monthIncome.reduce((s, e) => s + Number(e.value), 0);
+  const byCat = {};
+  monthExpenses.forEach((e) => { byCat[e.category] = (byCat[e.category] || 0) + Number(e.value); });
+  const sortedCats = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+  const maxCat = sortedCats.length ? sortedCats[0][1] : 0;
+  const cegOpen = data.cegs.filter((c) => c.participants.some((p) => !p.paid)).length;
+  const saldoGeral = data.accounts.reduce((s, acc) => s + accountBalance(data, acc.id), 0);
+
+  const catCard = card("Por categoria (mês atual)", [
+    sortedCats.length === 0 ? h("p", { class: "muted" }, "Nenhum lançamento este mês ainda.") : null,
+    ...sortedCats.map(([cat, val]) => h("div", { class: "bar-row" },
+      h("div", { class: "bar-row-top" }, h("span", null, cat), h("span", { class: "mono" }, money(val))),
+      bar(maxCat > 0 ? (val / maxCat) * 100 : 0)
+    )),
+  ]);
+  catCard.classList.add("span-2");
+
+  const envCard = card("Cofres", [
+    data.envelopes.length === 0 ? h("p", { class: "muted" }, 'Nenhum cofre criado ainda. Vá em "Cofres" para dividir seu dinheiro.') : null,
+    ...data.envelopes.map((env) => {
+      const spent = data.entries.filter((e) => e.envelope === env.name && e.kind !== "receita").reduce((s, e) => s + Number(e.value), 0);
+      const pct = env.budget > 0 ? (spent / env.budget) * 100 : 0;
+      return h("div", { class: "bar-row" },
+        h("div", { class: "bar-row-top" }, h("span", null, env.name), h("span", { class: "mono" }, money(spent) + " / " + money(env.budget))),
+        bar(pct, pct > 100)
+      );
+    }),
+  ]);
+  envCard.classList.add("span-2");
+
+  return h("div", { class: "grid-2" },
+    card("Saldo geral", [h("div", { class: "big-number" }, money(saldoGeral)), h("div", { class: "muted" }, data.accounts.length + " conta(s)/cartão(ões)")]),
+    card("Gasto do mês", [h("div", { class: "big-number" }, money(totalExpense)), h("div", { class: "muted" }, "receitas: " + money(totalIncome))]),
+    card("CEGs em aberto", [h("div", { class: "big-number" }, String(cegOpen)), h("div", { class: "muted" }, "compra(s) em grupo com pagamento pendente")]),
+    catCard, envCard
+  );
+}
+
+// =================================================================
+// Lançamentos
+// =================================================================
+function EntriesScreen() {
+  const data = session.data;
+  const dateInput = h("input", { type: "date", value: todayISO() });
+  const descInput = h("input", { placeholder: "Ex: mercado" });
+  const valueInput = h("input", { type: "number", step: "0.01", min: "0", placeholder: "0,00" });
+  const kindSelect = h("select", null, h("option", { value: "despesa" }, "Despesa"), h("option", { value: "receita" }, "Receita"));
+  const categoryInput = h("input", { placeholder: "Ex: alimentação", value: "Geral" });
+  const accountSelect = h("select", null, h("option", { value: "" }, "Sem conta"), ...data.accounts.map((acc) => h("option", { value: acc.id }, acc.name)));
+  const envelopeSelect = h("select", null, h("option", { value: "" }, "Sem cofre"), ...data.envelopes.map((env) => h("option", { value: env.name }, env.name)));
+  const statusSelect = h("select", null, h("option", { value: "pago" }, "Pago/recebido"), h("option", { value: "pendente" }, "Pendente"));
+
+  const form = h("form", { class: "form-grid" },
+    h("label", null, "Data", dateInput), h("label", null, "Descrição", descInput), h("label", null, "Valor (R$)", valueInput),
+    h("label", null, "Tipo", kindSelect), h("label", null, "Categoria", categoryInput), h("label", null, "Conta", accountSelect),
+    h("label", null, "Cofre", envelopeSelect), h("label", null, "Status", statusSelect),
+    h("button", { type: "submit", class: "btn-primary btn-inline" }, icon("+", 16), " Adicionar")
+  );
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (!descInput.value.trim() || !valueInput.value) return;
+    const entry = {
+      id: makeId(), date: dateInput.value, description: descInput.value.trim(), value: Number(valueInput.value),
+      kind: kindSelect.value, status: statusSelect.value, category: categoryInput.value.trim() || "Geral",
+      accountId: accountSelect.value || null, envelope: envelopeSelect.value || null,
+    };
+    persist(Object.assign({}, data, { entries: data.entries.concat([entry]) }));
+  });
+
+  const accountName = (id) => { const a = data.accounts.find((x) => x.id === id); return a ? a.name : null; };
+  const sorted = data.entries.slice().sort((a, b) => (a.date < b.date ? 1 : -1));
+  const groups = [];
+  sorted.forEach((e) => { let g = groups.find((x) => x.date === e.date); if (!g) { g = { date: e.date, items: [] }; groups.push(g); } g.items.push(e); });
+
+  const list = h("div", null,
+    sorted.length === 0 ? h("p", { class: "muted" }, "Nada por aqui ainda.") : null,
+    ...groups.map((g) => {
+      const dayNet = g.items.reduce((s, e) => s + (e.kind === "receita" ? Number(e.value) : -Number(e.value)), 0);
+      const header = h("div", { class: "day-group-head" }, h("span", null, brDate(g.date)),
+        h("span", { class: "mono", style: { color: dayNet < 0 ? "var(--expense)" : "var(--income)" } }, (dayNet >= 0 ? "+ " : "− ") + money(Math.abs(dayNet))));
+      const rows = g.items.map((e) => {
+        const delBtn = h("button", { class: "icon-btn" }, icon("🗑", 15));
+        delBtn.addEventListener("click", () => persist(Object.assign({}, data, { entries: data.entries.filter((x) => x.id !== e.id) })));
+        const statusBtn = h("button", { class: "status-pill" + (e.status === "pago" ? " on" : "") }, e.status === "pago" ? (e.kind === "receita" ? "Recebido" : "Pago") : "Pendente");
+        statusBtn.addEventListener("click", () => persist(Object.assign({}, data, { entries: data.entries.map((x) => x.id === e.id ? Object.assign({}, x, { status: x.status === "pago" ? "pendente" : "pago" }) : x) })));
+        const meta = [e.category, e.envelope, accountName(e.accountId)].filter(Boolean).join(" · ");
+        return h("div", { class: "entry-item" },
+          h("div", null, h("div", { class: "entry-desc" }, e.description), h("div", { class: "entry-meta" }, meta)),
+          h("div", { class: "entry-right" }, statusBtn,
+            h("span", { class: "mono", style: { color: e.kind === "receita" ? "var(--income)" : "var(--ink)" } }, (e.kind === "receita" ? "+ " : "− ") + money(e.value)),
+            delBtn)
+        );
+      });
+      return h("div", { class: "day-group" }, header, ...rows);
+    })
+  );
+
+  return h("div", { class: "stack" }, card("Novo lançamento", form), card("Todos os lançamentos", list));
+}
+
+// =================================================================
+// Contas
+// =================================================================
+function AccountsScreen() {
+  const data = session.data;
+  const nameInput = h("input", { placeholder: "Ex: conta corrente, cartão Nubank" });
+  const typeSelect = h("select", null, h("option", { value: "conta" }, "Conta"), h("option", { value: "cartao" }, "Cartão de crédito"));
+  const initialInput = h("input", { type: "number", step: "0.01", placeholder: "0,00" });
+
+  const form = h("form", { class: "form-grid" },
+    h("label", null, "Nome", nameInput), h("label", null, "Tipo", typeSelect), h("label", null, "Saldo inicial (R$)", initialInput),
+    h("button", { type: "submit", class: "btn-primary btn-inline" }, icon("+", 16), " Adicionar conta")
+  );
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (!nameInput.value.trim()) return;
+    persist(Object.assign({}, data, { accounts: data.accounts.concat([{ id: makeId(), name: nameInput.value.trim(), type: typeSelect.value, initial: Number(initialInput.value || 0) }]) }));
+  });
+
+  const emptyMsg = data.accounts.length === 0 ? card(null, h("p", { class: "muted" }, "Nenhuma conta ou cartão ainda. Adicione um para ver o saldo separado por conta.")) : null;
+  const grid = h("div", { class: "grid-2" }, ...data.accounts.map((acc) => {
+    const bal = accountBalance(data, acc.id);
+    const delBtn = h("button", { class: "icon-btn" }, icon("🗑", 15));
+    delBtn.addEventListener("click", () => persist(Object.assign({}, data, {
+      accounts: data.accounts.filter((a) => a.id !== acc.id),
+      entries: data.entries.map((e) => e.accountId === acc.id ? Object.assign({}, e, { accountId: null }) : e),
+    })));
+    return card(null, [
+      h("div", { class: "obj-head" }, h("div", null, h("div", { class: "obj-title" }, (acc.type === "cartao" ? "💳 " : "🏦 ") + acc.name), h("div", { class: "entry-meta" }, acc.type === "cartao" ? "Cartão de crédito" : "Conta")), delBtn),
+      h("div", { class: "big-number", style: { fontSize: "22px" } }, money(bal)),
+    ]);
+  }));
+
+  return h("div", { class: "stack" }, card("Nova conta ou cartão", form), emptyMsg, grid);
+}
+
+// =================================================================
+// CEGs
+// =================================================================
+function CegsScreen() {
+  const data = session.data;
+  const titleInput = h("input", { placeholder: "Ex: assinatura streaming" });
+  const totalInput = h("input", { type: "number", step: "0.01", min: "0", placeholder: "0,00" });
+  const namesInput = h("input", { placeholder: "Você, Ana, Bruno" });
+
+  const form = h("form", { class: "form-grid" },
+    h("label", null, "O que foi comprado", titleInput), h("label", null, "Valor total (R$)", totalInput),
+    h("label", null, "Participantes (separados por vírgula)", namesInput),
+    h("button", { type: "submit", class: "btn-primary btn-inline" }, icon("+", 16), " Criar CEG")
+  );
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const names = namesInput.value.split(",").map((n) => n.trim()).filter(Boolean);
+    if (!titleInput.value.trim() || !totalInput.value || names.length === 0) return;
+    const share = Number(totalInput.value) / names.length;
+    persist(Object.assign({}, data, { cegs: data.cegs.concat([{ id: makeId(), title: titleInput.value.trim(), total: Number(totalInput.value), date: todayISO(), participants: names.map((n) => ({ name: n, share, paid: false })) }]) }));
+  });
+
+  const list = data.cegs.length === 0 ? [card(null, h("p", { class: "muted" }, "Nenhuma compra em grupo ainda."))]
+    : data.cegs.slice().sort((a, b) => (a.date < b.date ? 1 : -1)).map((c) => {
+        const delBtn = h("button", { class: "icon-btn" }, icon("🗑", 15));
+        delBtn.addEventListener("click", () => persist(Object.assign({}, data, { cegs: data.cegs.filter((x) => x.id !== c.id) })));
+        const head = h("div", { class: "obj-head" }, h("div", null, h("div", { class: "obj-title" }, c.title), h("div", { class: "entry-meta" }, brDate(c.date) + " · total " + money(c.total))), delBtn);
+        const rows = c.participants.map((p, i) => {
+          const checkBtn = h("button", { class: "check" + (p.paid ? " on" : "") }, p.paid ? "✓" : "");
+          checkBtn.addEventListener("click", () => persist(Object.assign({}, data, { cegs: data.cegs.map((cc) => cc.id === c.id ? Object.assign({}, cc, { participants: cc.participants.map((pp, ii) => ii === i ? Object.assign({}, pp, { paid: !pp.paid }) : pp) }) : cc) })));
+          return h("div", { class: "ceg-p" }, checkBtn, h("span", { class: "p-name" + (p.paid ? " paid" : "") }, p.name), h("span", { class: "mono" }, money(p.share)));
+        });
+        return card(null, [head, h("div", { class: "ceg-participants" }, rows)]);
+      });
+
+  return h("div", { class: "stack" }, card("Nova compra em grupo (CEG)", form), ...list);
+}
+
+// =================================================================
+// Cofres
+// =================================================================
+function EnvelopesScreen() {
+  const data = session.data;
+  const nameInput = h("input", { placeholder: "Ex: lazer, contas fixas, reserva" });
+  const budgetInput = h("input", { type: "number", step: "0.01", min: "0", placeholder: "0,00" });
+
+  const form = h("form", { class: "form-grid" },
+    h("label", null, "Nome", nameInput), h("label", null, "Valor destinado (R$)", budgetInput),
+    h("button", { type: "submit", class: "btn-primary btn-inline" }, icon("+", 16), " Criar cofre")
+  );
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (!nameInput.value.trim() || !budgetInput.value) return;
+    persist(Object.assign({}, data, { envelopes: data.envelopes.concat([{ name: nameInput.value.trim(), budget: Number(budgetInput.value) }]) }));
+  });
+
+  const emptyMsg = data.envelopes.length === 0 ? card(null, h("p", { class: "muted" }, "Nenhum cofre ainda. Crie um para começar a dividir seu dinheiro.")) : null;
+  const grid = h("div", { class: "grid-2" }, ...data.envelopes.map((env) => {
+    const spent = data.entries.filter((e) => e.envelope === env.name && e.kind !== "receita").reduce((s, e) => s + Number(e.value), 0);
+    const pct = env.budget > 0 ? (spent / env.budget) * 100 : 0;
+    const delBtn = h("button", { class: "icon-btn" }, icon("🗑", 15));
+    delBtn.addEventListener("click", () => persist(Object.assign({}, data, { envelopes: data.envelopes.filter((x) => x.name !== env.name) })));
+    return card(null, [
+      h("div", { class: "obj-head" }, h("div", { class: "obj-title" }, env.name), delBtn),
+      h("div", { class: "bar-row-top", style: { marginBottom: "8px" } }, h("span", { class: "mono" }, money(spent)), h("span", { class: "muted" }, "de " + money(env.budget))),
+      bar(pct, pct > 100),
+      h("div", { class: "muted", style: { marginTop: "8px" } }, pct > 100 ? "Estourou o valor destinado" : Math.round(pct) + "% usado"),
+    ]);
+  }));
+
+  return h("div", { class: "stack" }, card("Novo cofre", form), emptyMsg, grid);
+}
+
+// =================================================================
+// Importar extrato
+// =================================================================
+function ImportScreen() {
+  const data = session.data;
+  const statusBox = h("div");
+  const envelopeSelect = h("select", null, h("option", { value: "" }, "Sem cofre"), ...data.envelopes.map((env) => h("option", { value: env.name }, env.name)));
+  const accountSelect = h("select", null, h("option", { value: "" }, "Sem conta"), ...data.accounts.map((acc) => h("option", { value: acc.id }, acc.name)));
+
+  function showStatus(ok, msg) { clear(statusBox); statusBox.appendChild(h("div", { class: "status " + (ok ? "ok" : "err") }, icon(ok ? "✓" : "⚠", 15), h("span", null, msg))); }
+
+  function finishImport(rows) {
+    const envelope = envelopeSelect.value || null;
+    const accountId = accountSelect.value || null;
+    const parsed = rows.map((r) => ({ id: makeId(), date: r.date, description: r.description, value: r.value, kind: "despesa", status: "pago", category: "Não categorizado", envelope, accountId }))
+      .filter((r) => r.date && r.description && !Number.isNaN(r.value));
+    if (parsed.length === 0) { showStatus(false, "Não consegui identificar linhas válidas (data, descrição, valor)."); return; }
+    persist(Object.assign({}, data, { entries: data.entries.concat(parsed) }));
+    showStatus(true, parsed.length + " lançamento(s) importado(s) com sucesso.");
+  }
+
+  const fileInput = h("input", { type: "file", accept: ".csv,.xlsx,.xls,.pdf,.txt", style: { display: "none" } });
+  fileInput.addEventListener("change", () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    const ext = file.name.split(".").pop().toLowerCase();
+    if (ext === "csv" || ext === "txt") {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const rows = parseCSV(String(evt.target.result)).map((row) => { const { dateKey, descKey, valKey } = guessColumns(row); return { date: normalizeDate(row[dateKey]), description: row[descKey] ? String(row[descKey]).trim() : "", value: normalizeValue(row[valKey]) }; });
+        finishImport(rows);
+      };
+      reader.onerror = () => showStatus(false, "Não consegui ler esse arquivo.");
+      reader.readAsText(file, "utf-8");
+    } else if (ext === "xlsx" || ext === "xls") {
+      showStatus(false, "Arquivos .xlsx ainda não são lidos automaticamente — exporte como CSV ou cole o texto abaixo.");
+    } else if (ext === "pdf") {
+      showStatus(false, "Para PDF, copie o texto do extrato e cole no campo abaixo.");
+    } else {
+      showStatus(false, "Formato não reconhecido. Use CSV ou cole o texto abaixo.");
+    }
+  });
+  const dropzone = h("label", { class: "dropzone" }, icon("⬆", 20), h("span", null, "Clique para escolher um arquivo (.csv)"), fileInput);
+
+  const pasteArea = h("textarea", { class: "paste-area", rows: 6, placeholder: "Cole aqui as linhas do extrato, ex:\n12/08/2026  Mercado São João  R$ 87,40\n13/08/2026  Uber  R$ 22,00" });
+  const pasteBtn = h("button", { type: "button", class: "btn-primary btn-inline", style: { marginTop: "10px" } }, icon("+", 16), " Processar texto colado");
+  pasteBtn.addEventListener("click", () => {
+    const lines = pasteArea.value.split("\n").map((l) => l.trim()).filter(Boolean);
+    const rows = lines.map((line) => {
+      const dateMatch = line.match(/(\d{2}[\/\-]\d{2}[\/\-]\d{4}|\d{4}-\d{2}-\d{2})/);
+      const valueMatches = line.match(/(-?R?\$?\s?\d{1,3}(?:\.\d{3})*,\d{2}|-?\d+\.\d{2})(?!\d)/g);
+      const date = dateMatch ? normalizeDate(dateMatch[1]) : null;
+      const value = valueMatches ? normalizeValue(valueMatches[valueMatches.length - 1]) : NaN;
+      let description = line;
+      if (dateMatch) description = description.replace(dateMatch[0], "");
+      if (valueMatches) description = description.replace(valueMatches[valueMatches.length - 1], "");
+      return { date, description: description.replace(/\s{2,}/g, " ").trim(), value };
+    });
+    finishImport(rows);
+  });
+
+  return h("div", { class: "stack" },
+    card("Importar extrato (CSV)", [
+      h("p", { class: "muted", style: { marginBottom: "12px" } }, "O arquivo precisa ter colunas de data, descrição e valor (tentamos reconhecer os nomes automaticamente)."),
+      h("label", { class: "imp-label" }, "Lançar no cofre (opcional)", envelopeSelect),
+      h("label", { class: "imp-label" }, "Lançar na conta (opcional)", accountSelect),
+      dropzone,
+    ]),
+    card("Ou cole o texto do extrato (útil para PDF ou XLSX)", [pasteArea, pasteBtn]),
+    statusBox
+  );
+}
+
+// =================================================================
+// App shell
+// =================================================================
+const TAB_TITLES = { overview: "Visão geral", entries: "Lançamentos diários", accounts: "Contas e cartões", cegs: "CEGs — compras em grupo", envelopes: "Cofres", import: "Importar extrato" };
+const TAB_SCREENS = { overview: Overview, entries: EntriesScreen, accounts: AccountsScreen, cegs: CegsScreen, envelopes: EnvelopesScreen, import: ImportScreen };
+
+let titleEl = null, mainContentEl = null, sidebarEl = null;
+
+function renderMain() {
+  clear(mainContentEl);
+  mainContentEl.appendChild(TAB_SCREENS[session.tab]());
+  clear(titleEl);
+  titleEl.appendChild(document.createTextNode(TAB_TITLES[session.tab]));
+  if (sidebarEl && sidebarEl._navButtons) {
+    Object.keys(sidebarEl._navButtons).forEach((id) => { sidebarEl._navButtons[id].className = "nav-item" + (id === session.tab ? " active" : ""); });
+  }
+}
+function setTab(id) { session.tab = id; renderMain(); }
+
+function showApp() {
+  sidebarEl = Sidebar(setTab, logout);
+  titleEl = h("h1", null, "");
+  mainContentEl = h("div");
+  mount(h("div", { class: "app-shell" }, sidebarEl, h("main", null, titleEl, mainContentEl)));
+  renderMain();
+}
+function showAuth() { mount(AuthScreen()); }
+
+function showCrash(err) {
+  mount(h("div", { class: "crash-box" }, h("div", { class: "crash-card" },
+    h("div", { style: { fontWeight: "700", marginBottom: "8px", color: "#15201A" } }, "Algo travou no Broto"),
+    h("div", { style: { fontSize: "13px", marginBottom: "12px" } }, "Copie esta mensagem para quem for corrigir:"),
+    h("pre", null, String((err && (err.stack || err.message)) || err)))));
+}
+window.addEventListener("error", (ev) => { try { showCrash(ev.error || ev.message); } catch (e) {} });
+
+// =================================================================
+// Bootstrap
+// =================================================================
+(async function start() {
+  try {
+    fb = await initFirebase();
+    if (fb) {
+      fb.authFns.onAuthStateChanged(fb.auth, async (user) => {
+        if (user) {
+          let docSnap;
+          try { docSnap = await fb.dbFns.getDoc(fb.dbFns.doc(fb.db, "users", user.uid)); }
+          catch (err) { showAuth(); return; }
+          session.uid = user.uid;
+          session.name = user.displayName || user.email;
+          session.data = normalizeData(docSnap.exists() ? docSnap.data() : null);
+          session.tab = "overview";
+          showApp();
+        } else {
+          session.uid = null; session.data = null;
+          showAuth();
+        }
+      }, () => showAuth());
+    } else {
+      showAuth();
+    }
+  } catch (err) {
+    showCrash(err);
+  }
+})();
+</script>
+</body>
+</html>
