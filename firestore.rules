@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function validCollection(col) {
+      return col in ['accounts', 'transactions', 'categories', 'envelopes', 'cegs'];
+    }
+
+    function validTransaction(d) {
+      return d.type in ['income', 'expense', 'transfer']
+        && d.amount is int && d.amount >= 0
+        && d.date is string && d.date.size() == 10
+        && d.paid is bool
+        && d.accountId is string;
+    }
+
+    function validDoc(col, d) {
+      return d.size() <= 40
+        && (col != 'transactions' || validTransaction(d));
+    }
+
+    // Perfil do usuário: só o dono lê e escreve
+    match /users/{userId} {
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId) && request.resource.data.size() <= 20;
+
+      // Contas, lançamentos, categorias, cofres e CEGs do usuário
+      match /{col}/{docId} {
+        allow read, delete: if isOwner(userId) && validCollection(col);
+        allow create, update: if isOwner(userId) && validCollection(col) && validDoc(col, request.resource.data);
+      }
+    }
+
+    // Todo o resto é bloqueado
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
